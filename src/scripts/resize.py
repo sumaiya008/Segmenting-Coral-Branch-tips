@@ -30,8 +30,8 @@ directories = [
     '/Users/sumaiyauddin/Documents/Semester03/CCNY-DSE-Capstone-Project-Segmenting-Coral-Branch-tips/data/external/Coral_images/APAL',
     '/Users/sumaiyauddin/Documents/Semester03/CCNY-DSE-Capstone-Project-Segmenting-Coral-Branch-tips/data/external/Coral_images/Pseudodiploria'
 ]
-desired_width = 1080
-desired_height = 1080
+desired_width = 512
+desired_height = 512
 
 # Resize images in each directory
 for directory in directories:
