@@ -27,7 +27,7 @@ def resize_images_in_directory(directory, desired_width, desired_height):
 
 # Specify the directories and dimensions
 directories = [
-    'data/external/Coral_images/image']
+    '/Users/sumaiyauddin/Documents/Semester03/CCNY-DSE-Capstone-Project-Segmenting-Coral-Branch-tips/data/external/Coral_images/Test/Pseudodiploria']
 
 desired_width = 224
 desired_height = 224
