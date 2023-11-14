@@ -1,49 +1,76 @@
-import xml.etree.ElementTree as ET
 import os
+import xml.etree.ElementTree as ET
+import random
+from PIL import Image
 
-def convert_annotation(xml_file_path):
-    tree = ET.parse(xml_file_path)
-    root = tree.getroot()
+# Define the paths to your image and annotation folders
+path_images = "/Users/sumaiyauddin/Documents/Semester03/CCNY-DSE-Capstone-Project-Segmenting-Coral-Branch-tips/data/external/Coral_images/image02"
+path_annotations = "/Users/sumaiyauddin/Documents/Semester03/CCNY-DSE-Capstone-Project-Segmenting-Coral-Branch-tips/data/external/Coral_images/annotation"
 
-    yolo_lines = []
-    image_width = int(root.find('.//size/width').text)
-    image_height = int(root.find('.//size/height').text)
+# Create the "annotations" directory if it doesn't exist
+output_annotations_dir = "/Users/sumaiyauddin/Documents/Semester03/CCNY-DSE-Capstone-Project-Segmenting-Coral-Branch-tips/data/external/Coral_images/yolo"
+os.makedirs(output_annotations_dir, exist_ok=True)
 
-    for obj in root.iter('object'):
-        class_name = obj.find('name').text
-        # Replace class_id with the actual class index for each class
-        class_id = 0  # Change this based on your class mapping
+# Function to get the data from XML Annotation
+def extract_info_from_xml(xml_file):
+    root = ET.parse(xml_file).getroot()
+    info_dict = {}
+    info_dict['bboxes'] = []
 
-        bbox = obj.find('bndbox')
-        xmin = float(bbox.find('xmin').text)
-        ymin = float(bbox.find('ymin').text)
-        xmax = float(bbox.find('xmax').text)
-        ymax = float(bbox.find('ymax').text)
+    for elem in root:
+        if elem.tag == "filename":
+            info_dict['filename'] = elem.text
+        elif elem.tag == "size":
+            image_size = [int(subelem.text) for subelem in elem]
+            info_dict['image_size'] = tuple(image_size)
+        elif elem.tag == "object":
+            bbox = {}
+            for subelem in elem:
+                if subelem.tag == "name":
+                    bbox["class"] = subelem.text
+                elif subelem.tag == "bndbox":
+                    for subsubelem in subelem:
+                        bbox[subsubelem.tag] = int(subsubelem.text)
+            info_dict['bboxes'].append(bbox)
+    
+    return info_dict
 
-        x_center = (xmin + xmax) / (2.0 * image_width)
-        y_center = (ymin + ymax) / (2.0 * image_height)
-        box_width = (xmax - xmin) / image_width
-        box_height = (ymax - ymin) / image_height
+# Dictionary that maps class names to IDs
+class_name_to_id_mapping = {"APAL": 0, "Pseudodiploria": 1}
 
-        yolo_lines.append(f"{class_id} {x_center} {y_center} {box_width} {box_height}")
+# Convert the info dict to the required YOLO format and write it to disk
+def convert_to_yolov5(info_dict):
+    print_buffer = []
 
-    return yolo_lines
+    for b in info_dict["bboxes"]:
+        try:
+            class_id = class_name_to_id_mapping[b["class"]]
+        except KeyError:
+            print("Invalid Class. Must be one from ", class_name_to_id_mapping.keys())
 
-def main():
-    xml_folder = "/Users/sumaiyauddin/Documents/Semester03/CCNY-DSE-Capstone-Project-Segmenting-Coral-Branch-tips/data/external/Coral_images/annotation"
-    yolo_folder = "/Users/sumaiyauddin/Documents/Semester03/CCNY-DSE-Capstone-Project-Segmenting-Coral-Branch-tips/data/external/Coral_images/yolo"
+        b_center_x = (b["xmin"] + b["xmax"]) / 2
+        b_center_y = (b["ymin"] + b["ymax"]) / 2
+        b_width = (b["xmax"] - b["xmin"])
+        b_height = (b["ymax"] - b["ymin"])
 
-    for xml_file in os.listdir(xml_folder):
-        if xml_file.endswith(".xml"):
-            xml_path = os.path.join(xml_folder, xml_file)
-            yolo_lines = convert_annotation(xml_path)
+        image_w, image_h, _ = info_dict["image_size"]
+        b_center_x /= image_w
+        b_center_y /= image_h
+        b_width /= image_w
+        b_height /= image_h
 
-            yolo_file = os.path.join(yolo_folder, os.path.splitext(xml_file)[0] + ".txt")
-            with open(yolo_file, "w") as f:
-                for line in yolo_lines:
-                    f.write(line + "\n")
+        print_buffer.append("{} {:.3f} {:.3f} {:.3f} {:.3f}".format(class_id, b_center_x, b_center_y, b_width, b_height))
 
-if __name__ == "__main__":
-    main()
+    save_file_name = os.path.join(output_annotations_dir, info_dict["filename"].replace("jpg", "txt").replace("JPG", "txt"))
 
+    with open(save_file_name, "w") as file:
+        file.write("\n".join(print_buffer))
 
+# Get the annotations
+annotations = [os.path.join(path_annotations, x) for x in os.listdir(path_annotations) if x.endswith(".xml")]
+annotations.sort()
+
+# Convert and save the annotations
+for ann in annotations:
+    info_dict = extract_info_from_xml(ann)
+    convert_to_yolov5(info_dict)
