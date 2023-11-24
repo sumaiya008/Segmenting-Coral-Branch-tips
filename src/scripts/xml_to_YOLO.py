@@ -35,8 +35,8 @@ def extract_info_from_xml(xml_file):
     
     return info_dict
 
-# Dictionary that maps class names to IDs
-class_name_to_id_mapping = {"APAL": 0, "Pseudodiploria": 1}
+# List of class names
+class_names = ["APAL", "Pseudodiploria"]
 
 # Convert the info dict to the required YOLO format and write it to disk
 def convert_to_yolov5(info_dict):
@@ -44,9 +44,13 @@ def convert_to_yolov5(info_dict):
 
     for b in info_dict["bboxes"]:
         try:
-            class_id = class_name_to_id_mapping[b["class"]]
-        except KeyError:
-            print("Invalid Class. Must be one from ", class_name_to_id_mapping.keys())
+            class_name = b["class"]
+            if class_name not in class_names:
+                raise KeyError("Invalid Class. Must be one from ", class_names)
+            class_id = class_names.index(class_name)
+        except KeyError as e:
+            print(e)
+            continue  # Skip this bounding box if the class is invalid
 
         b_center_x = (b["xmin"] + b["xmax"]) / 2
         b_center_y = (b["ymin"] + b["ymax"]) / 2
@@ -59,7 +63,7 @@ def convert_to_yolov5(info_dict):
         b_width /= image_w
         b_height /= image_h
 
-        print_buffer.append("{} {:.3f} {:.3f} {:.3f} {:.3f}".format(class_id, b_center_x, b_center_y, b_width, b_height))
+        print_buffer.append("{} {:.3f} {:.3f} {:.3f} {:.3f}".format(class_name, b_center_x, b_center_y, b_width, b_height))
 
     save_file_name = os.path.join(output_annotations_dir, info_dict["filename"].replace("jpg", "txt").replace("JPG", "txt"))
 
