@@ -52,8 +52,8 @@ def convert_to_yolov5(info_dict):
             print(e)
             continue  # Skip this bounding box if the class is invalid
 
-        b_center_x = (b["xmin"] + b["xmax"]) / 2
-        b_center_y = (b["ymin"] + b["ymax"]) / 2
+        b_center_x = (b["xmin"] + b["xmax"] - 1) / 2
+        b_center_y = (b["ymin"] + b["ymax"] - 1) / 2
         b_width = (b["xmax"] - b["xmin"])
         b_height = (b["ymax"] - b["ymin"])
 
