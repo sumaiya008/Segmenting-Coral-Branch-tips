@@ -51,7 +51,13 @@ def convert_to_yolov5(info_dict):
         except KeyError as e:
             print(e)
             continue  # Skip this bounding box if the class is invalid
-
+        
+        # Map class names to numeric IDs
+        if class_name == "APAL":
+            class_id = 0
+        elif class_name == "Pseudodiploria":
+            class_id = 1
+            
         b_center_x = (b["xmin"] + b["xmax"] - 1) / 2
         b_center_y = (b["ymin"] + b["ymax"] - 1) / 2
         b_width = (b["xmax"] - b["xmin"])
@@ -63,7 +69,7 @@ def convert_to_yolov5(info_dict):
         b_width /= image_w
         b_height /= image_h
 
-        print_buffer.append("{} {:.3f} {:.3f} {:.3f} {:.3f}".format(class_name, b_center_x, b_center_y, b_width, b_height))
+        print_buffer.append("{} {:.3f} {:.3f} {:.3f} {:.3f}".format(class_id, b_center_x, b_center_y, b_width, b_height))
 
     save_file_name = os.path.join(output_annotations_dir, info_dict["filename"].replace("jpg", "txt").replace("JPG", "txt"))
 
